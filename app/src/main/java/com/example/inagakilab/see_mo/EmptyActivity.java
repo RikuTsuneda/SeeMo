@@ -1,13 +1,75 @@
 package com.example.inagakilab.see_mo;
 
-import android.support.v7.app.AppCompatActivity;
+import android.app.Activity;
+import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
+import android.hardware.Camera.Size;
 import android.os.Bundle;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.FrameLayout.LayoutParams;
 
-public class EmptyActivity extends AppCompatActivity {
+import java.util.List;
+
+public class EmptyActivity extends Activity {
+
+    SurfaceView sv;
+    SurfaceHolder sh;
+    Camera cam;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_empty);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        FrameLayout fl = new FrameLayout(this);
+        setContentView(fl);
+
+        sv = new SurfaceView(this);
+        sh = sv.getHolder();
+        sh.addCallback(new SurfaceHolderCallback());
+
+        fl.addView(sv);
+    }
+
+    class SurfaceHolderCallback implements SurfaceHolder.Callback {
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            cam = Camera.open();
+            Parameters param = cam.getParameters();
+            List<Size> ss = param.getSupportedPictureSizes();
+            Size pictSize = ss.get(0);
+
+            param.setPictureSize(1280, 800);
+            cam.setParameters(param);
+        }
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int f, int w, int h) {
+            try {
+                cam.setDisplayOrientation(0);
+                cam.setPreviewDisplay(sv.getHolder());
+
+                Parameters param = cam.getParameters();
+                List<Size> previewSizes =
+                        cam.getParameters().getSupportedPreviewSizes();
+                Size pre = previewSizes.get(0);
+                param.setPreviewSize(1280, 800);
+
+                LayoutParams lp = new LayoutParams(1280, 800);
+                sv.setLayoutParams(lp);
+
+                cam.setParameters(param);
+                cam.startPreview();
+            } catch (Exception e) { }
+        }
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {
+            cam.stopPreview();
+            cam.release();
+        }
     }
 }
